@@ -33,7 +33,7 @@ export default function ContributeSection() {
                     />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div>
                         <label className="block font-black uppercase text-xs tracking-widest mb-2">Category</label>
                         <input 

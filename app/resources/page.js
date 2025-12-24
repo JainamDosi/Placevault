@@ -13,10 +13,10 @@ export default function Resources() {
   return (
     <main className="min-h-screen">
       
-      <div className="px-4 md:px-8 max-w-7xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+      <div className="px-4 md:px-8 max-w-7xl mx-auto py-12 md:py-20">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8">
           <div>
-            <h1 className="text-6xl mb-4 italic">THE RESOURCE VAULT</h1>
+            <h1 className="text-4xl md:text-6xl mb-4 italic font-black uppercase tracking-tighter">THE RESOURCE VAULT</h1>
             <p className="font-bold text-gray-600">Browse verified placement materials from the community.</p>
           </div>
           <div className="flex gap-4 w-full md:w-auto">

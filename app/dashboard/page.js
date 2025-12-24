@@ -1,7 +1,28 @@
-import Navbar from "@/components/Navbar";
-import { User, Award, BookOpen, Clock, Settings } from "lucide-react";
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/client";
+import { User, Award, BookOpen, Clock } from "lucide-react";
 
 export default function Dashboard() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const supabase = createClient();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+      } else {
+        setUser(session.user);
+      }
+      setLoading(false);
+    };
+    checkUser();
+  }, [router]);
+
   const stats = [
     { label: "Prep Credits", value: "250", icon: <Award className="text-yellow-600" />, color: "bg-soft-green" },
     { label: "Contributions", value: "12", icon: <BookOpen className="text-blue-600" />, color: "bg-soft-blue" },
@@ -14,14 +35,24 @@ export default function Dashboard() {
     { title: "System Design Cheat Sheet", date: "Yesterday", status: "Under Review" },
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-4xl font-black animate-bounce italic uppercase tracking-tighter">
+          LOADING VAULT...
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <main className="min-h-screen pb-24">
-    
-      
-      <div className="px-8 max-w-7xl mx-auto">
+    <main className="min-h-screen pb-24 py-12 md:py-20">
+      <div className="px-4 md:px-8 max-w-7xl mx-auto">
         <header className="mb-12">
-          <h1 className="text-5xl mb-2">CAREER SEEKER DASHBOARD</h1>
-          <p className="font-mono text-sm uppercase tracking-widest text-gray-500">Welcome back, PREP_USER_01</p>
+          <h1 className="text-3xl md:text-5xl mb-2 italic font-black uppercase tracking-tighter">CAREER SEEKER DASHBOARD</h1>
+          <p className="font-mono text-[10px] md:text-sm uppercase tracking-widest text-gray-500">
+            Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'PREP_USER'}
+          </p>
         </header>
 
         {/* Stats Grid */}
@@ -42,7 +73,7 @@ export default function Dashboard() {
         <div className="grid lg:grid-cols-3 gap-12">
           {/* Main Space */}
           <div className="lg:col-span-2">
-            <h2 className="text-3xl mb-8">MY PREP SPACE</h2>
+            <h2 className="text-2xl md:text-3xl mb-8 italic">MY PREP SPACE</h2>
             <div className="space-y-6">
               {recentActivity.map((item, i) => (
                 <div key={i} className="brutalist-card bg-white p-6 flex justify-between items-center group cursor-pointer hover:bg-yellow-50">
@@ -74,10 +105,10 @@ export default function Dashboard() {
 
           {/* Sidebar */}
           <div>
-            <h2 className="text-3xl mb-8">TOOLS</h2>
+            <h2 className="text-2xl md:text-3xl mb-8 italic">TOOLS</h2>
             <div className="space-y-6">
               <div className="brutalist-card bg-black text-white p-8">
-                <h3 className="text-yellow-400 text-2xl mb-4 italic">CAREERBOT AI</h3>
+                <h3 className="text-yellow-400 text-2xl mb-4 italic uppercase">CAREERBOT AI</h3>
                 <p className="text-sm mb-6 text-gray-300 font-medium">
                   Stuck on a technical concept? Ask CareerBot for an instant explanation.
                 </p>
@@ -91,7 +122,12 @@ export default function Dashboard() {
                 <div className="space-y-2">
                   <button className="w-full text-left font-bold uppercase text-xs hover:underline decoration-4 decoration-accent">Profile Configuration</button>
                   <button className="w-full text-left font-bold uppercase text-xs hover:underline decoration-4 decoration-accent">Privacy & Security</button>
-                  <button className="w-full text-left font-bold uppercase text-xs hover:underline decoration-4 decoration-accent text-red-500">Logout</button>
+                  <button 
+                    onClick={() => supabase.auth.signOut()}
+                    className="w-full text-left font-bold uppercase text-xs hover:underline decoration-4 decoration-accent text-red-500"
+                  >
+                    Logout
+                  </button>
                 </div>
               </div>
             </div>

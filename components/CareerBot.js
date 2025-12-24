@@ -26,17 +26,17 @@ export default function CareerBot() {
   };
 
   return (
-    <div className="fixed bottom-8 right-8 z-[100]">
+    <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[100]">
       {!isOpen ? (
         <button 
           onClick={() => setIsOpen(true)}
-          className="bg-accent border-4 border-black px-6 py-3 shadow-brutalist-sm flex items-center gap-3 hover:-translate-y-1 hover:shadow-brutalist transition-all"
+          className="bg-accent border-4 border-black px-4 md:px-6 py-2 md:py-3 shadow-brutalist-sm flex items-center gap-2 md:gap-3 hover:-translate-y-1 hover:shadow-brutalist transition-all"
         >
           <div className="text-black"><ShieldCheck size={20} fill="black" className="text-accent" /></div>
-          <span className="font-black uppercase tracking-widest text-black">PREP AI</span>
+          <span className="font-black uppercase tracking-widest text-black text-xs md:text-sm">PREP AI</span>
         </button>
       ) : (
-        <div className="brutalist-card bg-white w-80 md:w-96 flex flex-col h-[500px] overflow-hidden">
+        <div className="brutalist-card bg-white w-[calc(100vw-2rem)] md:w-96 flex flex-col h-[500px] max-h-[calc(100vh-4rem)] overflow-hidden">
           {/* Header */}
           <div className="bg-black text-white p-4 flex justify-between items-center border-b-4 border-black">
             <h3 className="font-black italic uppercase tracking-tighter flex items-center gap-2">

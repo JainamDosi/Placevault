@@ -14,9 +14,9 @@ export default function Hero() {
       </div>
 
       <div className="max-w-5xl relative z-10 px-2 md:px-0">
-        <h1 className="text-5xl md:text-8xl lg:text-9xl mb-6 md:mb-8 leading-[0.9] font-black italic tracking-tighter">
+        <h1 className="text-4xl md:text-8xl lg:text-9xl mb-6 md:mb-8 leading-[0.9] font-black italic tracking-tighter">
           <div>CRACK</div>
-          <div className="relative inline-block mx-2">
+          <div className="relative inline-block my-2 md:my-0 mx-2">
              <span className="relative z-10 px-2 lg:px-4">INTERVIEWS</span>
              <div className="absolute inset-0 bg-[#F9CC18] -skew-x-6 border-2 md:border-4 border-black"></div>
           </div>

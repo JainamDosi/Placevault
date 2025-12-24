@@ -55,18 +55,18 @@ export default function Stories() {
   return (
     <main className="min-h-screen relative bg-white">
 
-      <div className="px-4 md:px-8 max-w-7xl mx-auto pb-24">
+      <div className="px-4 md:px-8 max-w-7xl mx-auto py-12 md:py-24">
         {/* Header */}
         <header className="mb-20 text-center md:text-left">
           <div className="inline-block bg-[#F9CC18] px-4 py-1 border-2 border-black font-black uppercase tracking-widest text-sm mb-4 shadow-brutalist-sm transform -rotate-1">
             Hall of Fame
           </div>
-          <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter mb-4">
+          <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter mb-4 leading-none">
             SUCCESS STORIES
           </h1>
-          <p className="text-xl font-bold text-gray-600 max-w-2xl">
+          <p className="text-lg md:text-xl font-bold text-gray-600 max-w-2xl">
             Real seniors. Real placements. Real feedback.
-            <br />
+            <br className="hidden md:block" />
             See how the Vault is changing careers.
           </p>
         </header>
@@ -108,16 +108,16 @@ export default function Stories() {
         </div>
 
         {/* Call to Action */}
-        <div className="mt-24 bg-black text-white p-12 border-4 border-black shadow-brutalist md:flex justify-between items-center relative overflow-hidden">
-           <div className="relative z-10">
-              <h2 className="text-4xl md:text-5xl font-black italic tracking-tighter mb-4">
+        <div className="mt-24 bg-black text-white p-8 md:p-12 border-4 border-black shadow-brutalist md:flex justify-between items-center relative overflow-hidden">
+           <div className="relative z-10 text-center md:text-left">
+              <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter mb-4">
                  READY TO BE NEXT?
               </h2>
-              <p className="text-lg font-bold text-gray-400 max-w-xl">
+              <p className="text-base md:text-lg font-bold text-gray-400 max-w-xl mx-auto md:mx-0">
                  Join 5,000+ students accessing the same resources that got these folks placed.
               </p>
            </div>
-           <button className="mt-8 md:mt-0 bg-[#F9CC18] text-black px-8 py-4 font-black uppercase italic text-xl border-4 border-white hover:bg-white hover:border-[#F9CC18] transition-colors relative z-10 flex items-center gap-2">
+           <button className="mt-8 md:mt-0 w-full md:w-auto bg-[#F9CC18] text-black px-8 py-4 font-black uppercase italic text-lg md:text-xl border-4 border-white hover:bg-white hover:border-[#F9CC18] transition-colors relative z-10 flex items-center justify-center gap-2">
               Start Preparing <ArrowRight strokeWidth={3} />
            </button>
            

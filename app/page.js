@@ -37,10 +37,10 @@ export default function Home() {
 
       {/* Prep Vault Section */}
       <section className="px-4 md:px-8 max-w-7xl mx-auto mb-32">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-10 border-b-0">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
           <div className="relative">
-            <h2 className="text-5xl font-black italic tracking-tighter uppercase relative z-10">PREP VAULT</h2>
-            <div className="absolute bottom-2 left-0 w-full h-4 bg-accent/60 z-0"></div>
+            <h2 className="text-4xl md:text-5xl font-black italic tracking-tighter uppercase relative z-10">PREP VAULT</h2>
+            <div className="absolute bottom-1 md:bottom-2 left-0 w-full h-3 md:h-4 bg-accent/60 z-0"></div>
           </div>
           
           <div className="flex gap-0 mt-6 md:mt-0 w-full md:w-auto shadow-brutalist-sm">
