@@ -2,8 +2,10 @@
 import { useState } from "react";
 import { X, Upload, Link as LinkIcon, FileText, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/client";
+import { useNotification } from "@/components/NotificationSystem";
 
 export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
+  const { showNotification } = useNotification();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -23,7 +25,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert("Please login to contribute!");
+        showNotification("Please login to contribute!", "error");
         return;
       }
 
@@ -60,14 +62,14 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
 
       if (insertError) throw insertError;
 
-      alert("Resource shared successfully!");
+      showNotification("Resource shared successfully!", "success");
       setFormData({ title: "", category: "", type: "PDF", link: "" });
       setFile(null);
       onUploadSuccess?.();
       onClose();
     } catch (error) {
       console.error("Upload error:", error);
-      alert(error.message || "Failed to upload resource");
+      showNotification(error.message || "Failed to upload resource", "error");
     } finally {
       setLoading(false);
     }
@@ -75,7 +77,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="brutalist-card bg-white w-full max-w-xl relative overflow-hidden">
+      <div className="brutalist-card bg-white text-black text-left w-full max-w-xl relative overflow-hidden">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 p-2 hover:bg-gray-100 transition-colors border-2 border-black"
@@ -84,7 +86,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
         </button>
 
         <div className="p-8">
-          <h2 className="text-3xl font-black italic mb-8 uppercase tracking-tighter">
+          <h2 className="text-3xl !font-black italic mb-8 uppercase tracking-tighter">
             Contribute to Vault
           </h2>
 
@@ -92,11 +94,12 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
             <div>
               <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Resource Title</label>
               <input 
+                key="input-title"
                 required
                 type="text" 
                 placeholder="e.g. Amazon Behavioral Prep" 
-                value={formData.title || ""}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                value={formData?.title || ""}
+                onChange={(e) => setFormData(prev => ({...prev, title: e.target.value}))}
                 className="w-full bg-gray-50 border-4 border-black p-4 font-bold focus:bg-accent/10 focus:outline-none"
               />
             </div>
@@ -105,20 +108,22 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
               <div>
                 <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Category</label>
                 <input 
+                  key="input-category"
                   required
                   type="text" 
                   placeholder="e.g. DSA, HR Prep" 
-                  value={formData.category || ""}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  value={formData?.category || ""}
+                  onChange={(e) => setFormData(prev => ({...prev, category: e.target.value}))}
                   className="w-full bg-gray-50 border-4 border-black p-4 font-bold focus:bg-accent/10 focus:outline-none"
                 />
               </div>
               <div>
                 <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Type</label>
                 <select 
+                  key="input-type"
                   className="w-full bg-gray-50 border-4 border-black p-4 font-bold focus:bg-accent/10 focus:outline-none appearance-none"
-                  value={formData.type || "PDF"}
-                  onChange={(e) => setFormData({...formData, type: e.target.value})}
+                  value={formData?.type || "PDF"}
+                  onChange={(e) => setFormData(prev => ({...prev, type: e.target.value}))}
                 >
                   <option value="PDF">PDF File</option>
                   <option value="Link">External Link</option>
@@ -156,11 +161,12 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
                 <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Resource Link</label>
                 <div className="relative">
                   <input 
+                    key="input-link"
                     required={formData.type === "Link"}
                     type="url" 
                     placeholder="https://..." 
-                    value={formData.link || ""}
-                    onChange={(e) => setFormData({...formData, link: e.target.value})}
+                    value={formData?.link || ""}
+                    onChange={(e) => setFormData(prev => ({...prev, link: e.target.value}))}
                     className="w-full bg-gray-50 border-4 border-black p-4 pl-12 font-bold focus:bg-accent/10 focus:outline-none"
                   />
                   <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />

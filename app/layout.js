@@ -13,6 +13,7 @@ export const metadata = {
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { NotificationProvider } from "@/components/NotificationSystem";
 
 export default function RootLayout({ children }) {
   return (
@@ -21,10 +22,12 @@ export default function RootLayout({ children }) {
         className={`${inter.variable} font-sans antialiased bg-background text-foreground`}
         suppressHydrationWarning
       >
-        <div className="noise-overlay" />
-        <Navbar />
-        {children}
-        <Footer />
+        <NotificationProvider>
+          <div className="noise-overlay" />
+          <Navbar />
+          {children}
+          <Footer />
+        </NotificationProvider>
       </body>
     </html>
   );

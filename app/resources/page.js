@@ -1,8 +1,11 @@
 "use client"
 import { useEffect, useState } from "react";
-import { Search, Filter, ExternalLink, Download, Clock, Bookmark, BookmarkCheck, ChevronUp } from "lucide-react";
+import { Search, Filter, ExternalLink, Download, Clock, Bookmark, BookmarkCheck, ChevronUp, Trash2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { createClient } from "@/lib/client";
+import { useNotification } from "@/components/NotificationSystem";
+import ConfirmModal from "@/components/ConfirmModal";
+import UploadModal from "@/components/UploadModal";
 
 export default function Resources() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -11,8 +14,11 @@ export default function Resources() {
   const [loading, setLoading] = useState(true);
   const [savedIds, setSavedIds] = useState(new Set());
   const [upvotedIds, setUpvotedIds] = useState(new Set());
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const { showNotification } = useNotification();
 
   const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -56,14 +62,20 @@ export default function Resources() {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*', // Listen to ALL events (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'resources',
         },
         (payload) => {
-          setResources(prev => 
-            prev.map(r => r.id === payload.new.id ? { ...r, upvote_count: payload.new.upvote_count } : r)
-          );
+          if (payload.eventType === 'UPDATE') {
+            setResources(prev => 
+              prev.map(r => r.id === payload.new.id ? { ...r, upvote_count: payload.new.upvote_count } : r)
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setResources(prev => prev.filter(r => r.id !== payload.old.id));
+          } else if (payload.eventType === 'INSERT') {
+            setResources(prev => [payload.new, ...prev]);
+          }
         }
       )
       .subscribe();
@@ -73,9 +85,27 @@ export default function Resources() {
     };
   }, []);
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    const { error } = await supabase
+      .from('resources')
+      .delete()
+      .eq('id', deleteTarget.id);
+
+    if (error) {
+      showNotification("Error deleting resource: " + error.message, "error");
+    } else {
+      showNotification("Resource deleted from vault", "success");
+      // Local state update sorted by Realtime, but doing it here for faster feedback
+      setResources(prev => prev.filter(r => r.id !== deleteTarget.id));
+    }
+    setDeleteTarget(null); // Close modal and reset target
+  };
+
   const handleUpvote = async (resourceId) => {
     if (!isLoggedIn) {
-      alert("Please login to upvote resources!");
+      showNotification("Please login to upvote resources!", "error");
       router.push("/login");
       return;
     }
@@ -175,6 +205,14 @@ export default function Resources() {
             <button className="bg-white border-4 border-black p-4 shadow-brutalist-sm hover:shadow-brutalist transition-all active:translate-x-1 active:translate-y-1 active:shadow-none">
               <Filter />
             </button>
+            {isLoggedIn && (
+              <button 
+                onClick={() => setIsUploadModalOpen(true)}
+                className="brutalist-button bg-yellow-400 px-6 whitespace-nowrap"
+              >
+                + CONTRIBUTE
+              </button>
+            )}
           </div>
         </header>
 
@@ -206,23 +244,32 @@ export default function Resources() {
                   <span>{new Date(res.created_at).toLocaleDateString()}</span>
                 </div>
                 
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                   <a 
                     href={res.storage_url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex-grow brutalist-button py-3 text-sm flex items-center justify-center gap-2"
+                    className="flex-grow brutalist-button py-3 px-4 text-sm flex items-center justify-center gap-2"
                   >
                     {res.type === 'PDF' ? <Download size={18} /> : <ExternalLink size={18} />}
                     {res.type === 'PDF' ? 'DOWNLOAD' : 'OPEN LINK'}
                   </a>
                   <button 
                     onClick={() => handleSave(res.id)}
-                    className={`brutalist-button p-3 shadow-none hover:shadow-brutalist-sm transition-all ${savedIds.has(res.id) ? 'bg-yellow-400' : 'bg-white'}`}
+                    className={`brutalist-button p-3 min-w-[3rem] shadow-none hover:shadow-brutalist-sm transition-all ${savedIds.has(res.id) ? 'bg-yellow-400' : 'bg-white'}`}
                     title={savedIds.has(res.id) ? "Saved to Dashboard" : "Save to Dashboard"}
                   >
                     {savedIds.has(res.id) ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
                   </button>
+                  {user?.id === res.author_id && (
+                    <button 
+                      onClick={() => setDeleteTarget(res)}
+                      className="brutalist-button p-3 min-w-[3rem] shadow-none hover:bg-red-500 hover:text-white transition-all bg-white"
+                      title="Delete Resource"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -235,7 +282,7 @@ export default function Resources() {
         </div>
 
         {/* Pagination/Load More */}
-        {!isLoggedIn && (
+        {!isLoggedIn && resources.length > 0 && (
           <div className="mt-20 mb-20 text-center">
             <button onClick={() => router.push("/login")} className="brutalist-button text-2xl px-12 py-6 bg-white hover:bg-black hover:text-white transition-colors">
               LOAD MORE MISSION DATA
@@ -243,6 +290,21 @@ export default function Resources() {
           </div>
         )}
       </div>
+
+      <UploadModal 
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUploadSuccess={fetchData}
+      />
+
+      <ConfirmModal 
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete Resource"
+        message={`Are you sure you want to delete "${deleteTarget?.title}"? This action is permanent and cannot be undone.`}
+        confirmText="DESTRUCT"
+      />
     </main>
   );
 }

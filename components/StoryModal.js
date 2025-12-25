@@ -2,8 +2,10 @@
 import { useState } from "react";
 import { X, MessageSquare, Loader2, Trophy } from "lucide-react";
 import { createClient } from "@/lib/client";
+import { useNotification } from "@/components/NotificationSystem";
 
 export default function StoryModal({ isOpen, onClose, onSuccess }) {
+  const { showNotification } = useNotification();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     text: "",
@@ -33,7 +35,7 @@ export default function StoryModal({ isOpen, onClose, onSuccess }) {
 
       if (error) throw error;
 
-      alert("Thank you for sharing your journey!");
+      showNotification("Thank you for sharing your journey!", "success");
       setFormData({
         text: "",
         author_name: "",
@@ -46,7 +48,7 @@ export default function StoryModal({ isOpen, onClose, onSuccess }) {
       onClose();
     } catch (error) {
       console.error("Story error:", error);
-      alert(error.message || "Failed to share story");
+      showNotification(error.message || "Failed to share story", "error");
     } finally {
       setLoading(false);
     }
@@ -76,11 +78,12 @@ export default function StoryModal({ isOpen, onClose, onSuccess }) {
             <div>
               <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Your Piece of Advice</label>
               <textarea 
+                key="story-text"
                 required
                 rows="4"
                 placeholder="What's the one thing that helped you crack the interview?" 
-                value={formData.text || ""}
-                onChange={(e) => setFormData({...formData, text: e.target.value})}
+                value={formData?.text || ""}
+                onChange={(e) => setFormData(prev => ({...prev, text: e.target.value}))}
                 className="w-full bg-gray-50 border-4 border-black p-4 font-bold focus:bg-yellow-50 focus:outline-none resize-none"
               ></textarea>
             </div>
@@ -88,23 +91,25 @@ export default function StoryModal({ isOpen, onClose, onSuccess }) {
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Your Name</label>
-                <input 
+                 <input 
+                  key="story-name"
                   required
                   type="text" 
                   placeholder="Arjun Mehta" 
-                  value={formData.author_name || ""}
-                  onChange={(e) => setFormData({...formData, author_name: e.target.value})}
+                  value={formData?.author_name || ""}
+                  onChange={(e) => setFormData(prev => ({...prev, author_name: e.target.value}))}
                   className="w-full bg-gray-50 border-4 border-black p-4 font-bold focus:bg-yellow-50 focus:outline-none"
                 />
               </div>
               <div>
                 <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Target Role</label>
                 <input 
+                  key="story-role"
                   required
                   type="text" 
                   placeholder="e.g. SDE-1, Product Analyst" 
-                  value={formData.author_role || ""}
-                  onChange={(e) => setFormData({...formData, author_role: e.target.value})}
+                  value={formData?.author_role || ""}
+                  onChange={(e) => setFormData(prev => ({...prev, author_role: e.target.value}))}
                   className="w-full bg-gray-50 border-4 border-black p-4 font-bold focus:bg-yellow-50 focus:outline-none"
                 />
               </div>
@@ -114,21 +119,23 @@ export default function StoryModal({ isOpen, onClose, onSuccess }) {
               <div className="md:col-span-2">
                 <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Company Name</label>
                 <input 
+                  key="story-company"
                   required
                   type="text" 
                   placeholder="e.g. Google, Atlassian" 
-                  value={formData.author_company || ""}
-                  onChange={(e) => setFormData({...formData, author_company: e.target.value})}
+                  value={formData?.author_company || ""}
+                  onChange={(e) => setFormData(prev => ({...prev, author_company: e.target.value}))}
                   className="w-full bg-gray-50 border-4 border-black p-4 font-bold focus:bg-yellow-50 focus:outline-none"
                 />
               </div>
               <div>
                 <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Package (Optional)</label>
                 <input 
+                  key="story-package"
                   type="text" 
                   placeholder="e.g. 45 LPA" 
-                  value={formData.package_info || ""}
-                  onChange={(e) => setFormData({...formData, package_info: e.target.value})}
+                  value={formData?.package_info || ""}
+                  onChange={(e) => setFormData(prev => ({...prev, package_info: e.target.value}))}
                   className="w-full bg-gray-50 border-4 border-black p-4 font-bold focus:bg-yellow-50 focus:outline-none"
                 />
               </div>

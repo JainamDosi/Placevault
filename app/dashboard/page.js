@@ -2,19 +2,20 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/client";
-import { User, Award, BookOpen, Clock } from "lucide-react";
+import { User, Award, BookOpen, Clock, Trash2 } from "lucide-react";
 import UploadModal from "@/components/UploadModal";
+import ConfirmModal from "@/components/ConfirmModal";
+import { useNotification } from "@/components/NotificationSystem";
 
 export default function Dashboard() {
+  const { showNotification } = useNotification();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploadedResources, setUploadedResources] = useState([]);
   const [savedResources, setSavedResources] = useState([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [stats, setStats] = useState([
-    { label: "Prep Credits", value: "0", icon: <Award className="text-yellow-600" />, color: "bg-soft-green" },
-    { label: "Contributions", value: "0", icon: <BookOpen className="text-blue-600" />, color: "bg-soft-blue" },
-  ]);
+  const [stats, setStats] = useState([]);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -24,43 +25,107 @@ export default function Dashboard() {
       router.push("/login");
       return;
     }
-    
-    const currentUser = session.user;
-    setUser(currentUser);
+    setUser(session.user);
 
-    // Fetch uploaded resources
-    const { data: uploads, error: uploadError } = await supabase
+    // Get count of uploaded resources
+    const { count: uploadsCount } = await supabase
       .from('resources')
-      .select('*')
-      .eq('author_id', currentUser.id)
-      .order('created_at', { ascending: false });
+      .select('*', { count: 'exact', head: true })
+      .eq('author_id', session.user.id);
 
-    if (uploads) setUploadedResources(uploads);
+    // Get IDs of user's uploaded resources
+    const { data: userResources } = await supabase
+      .from('resources')
+      .select('id')
+      .eq('author_id', session.user.id);
 
-    // Fetch saved resources (Junction Table Join)
-    const { data: saves, error: saveError } = await supabase
-      .from('saved_resources')
-      .select(`
-        resources (*)
-      `)
-      .eq('user_id', currentUser.id);
+    const userResourceIds = userResources?.map(r => r.id) || [];
 
-    if (saves) {
-      setSavedResources(saves.map(s => s.resources));
+    // Count how many times OTHER users have saved this user's resources
+    let totalSavesCount = 0;
+    if (userResourceIds.length > 0) {
+      const { count } = await supabase
+        .from('saved_resources')
+        .select('*', { count: 'exact', head: true })
+        .in('resource_id', userResourceIds)
+        .neq('user_id', session.user.id); // Exclude self-saves
+      
+      totalSavesCount = count || 0;
     }
 
-    // Update stats
-    setStats([
-      { label: "Prep Credits", value: "0", icon: <Award className="text-yellow-600" />, color: "bg-soft-green" },
-      { label: "Contributions", value: uploads?.length?.toString() || "0", icon: <BookOpen className="text-blue-600" />, color: "bg-soft-blue" },
-    ]);
+    // Fetch the list of resources
+    const { data: uploads } = await supabase
+      .from('resources')
+      .select('*')
+      .eq('author_id', session.user.id)
+      .order('created_at', { ascending: false });
 
+    const { data: savings } = await supabase
+      .from('saved_resources')
+      .select('resources(*)')
+      .eq('user_id', session.user.id);
+
+    setUploadedResources(uploads || []);
+    setSavedResources(savings?.map(s => s.resources).filter(Boolean) || []);
+
+    setStats([
+      { label: "Total Saves", value: totalSavesCount.toString(), icon: <Award className="text-yellow-500" />, color: "bg-soft-pink" },
+      { label: "Contributions", value: (uploadsCount || 0).toString(), icon: <BookOpen className="text-blue-500" />, color: "bg-soft-blue" },
+    ]);
     setLoading(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    const { error } = await supabase
+      .from('resources')
+      .delete()
+      .eq('id', deleteTarget.id);
+
+    if (error) {
+      showNotification("Error deleting resource: " + error.message, "error");
+    } else {
+      showNotification("Resource deleted successfully", "success");
+      setUploadedResources(prev => prev.filter(r => r.id !== deleteTarget.id));
+      fetchData(); // Update stats
+    }
+    setDeleteTarget(null);
   };
 
   useEffect(() => {
     fetchData();
   }, [router]);
+
+  // REALTIME SYNC FOR DASHBOARD
+  useEffect(() => {
+    const channel = supabase
+      .channel('dashboard-sync')
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'resources',
+        },
+        (payload) => {
+          // Remove from local uploaded list
+          setUploadedResources(prev => prev.filter(r => r.id !== payload.old.id));
+          // Remove from local saved list
+          setSavedResources(prev => prev.filter(r => r.id !== payload.old.id));
+          // Refresh stats to keep counts accurate
+          setStats(currentStats => [
+            currentStats[0], // Keep credits
+            { ...currentStats[1], value: (parseInt(currentStats[1].value) - 1).toString() } // Decr contributions
+          ]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -143,6 +208,16 @@ export default function Dashboard() {
                       >
                         OPEN
                       </a>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(item);
+                        }}
+                        className="p-2 text-red-600 hover:bg-black hover:text-white transition-colors border-2 border-black/5"
+                        title="Delete"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -227,6 +302,15 @@ export default function Dashboard() {
         isOpen={isUploadModalOpen} 
         onClose={() => setIsUploadModalOpen(false)}
         onUploadSuccess={fetchData}
+      />
+
+      <ConfirmModal 
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete Resource"
+        message={`Are you sure you want to remove "${deleteTarget?.title}" from the vault? This cannot be undone.`}
+        confirmText="DESTRUCT"
       />
     </main>
   );

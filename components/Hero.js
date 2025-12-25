@@ -1,3 +1,5 @@
+"use client";
+import Link from "next/link";
 import DotBackground from "./DotBackground";
 
 export default function Hero() {
@@ -24,16 +26,19 @@ export default function Hero() {
         </h1>
         
         <p className="text-lg md:text-xl font-medium text-gray-800 mb-12 max-w-2xl mx-auto leading-relaxed">
-          The ultimate vault for DSA roadmaps, HR prep scripts, and verified company application sheets.
+          The ultimate vault for Placement resources, HR prep scripts, and company sheets , resume templates, and many more...
         </p>
-        
         <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
-          <button className="bg-white text-black border-4 border-black px-8 py-4 font-black uppercase tracking-wider text-lg shadow-brutalist-sm hover:shadow-brutalist hover:-translate-y-1 transition-all">
-            EXPLORE VAULT
-          </button>
-          <button className="bg-black text-white border-4 border-black px-8 py-4 font-black uppercase tracking-wider text-lg shadow-brutalist-sm hover:bg-accent hover:text-black hover:shadow-brutalist hover:-translate-y-1 transition-all">
-            START PREPARING
-          </button>
+          <Link href="/resources">
+            <button className="bg-white text-black border-4 border-black px-8 py-4 font-black uppercase tracking-wider text-lg shadow-brutalist-sm hover:shadow-brutalist hover:-translate-y-1 transition-all">
+              EXPLORE VAULT
+            </button>
+          </Link>
+          <Link href="/login">
+            <button className="bg-black text-white border-4 border-black px-8 py-4 font-black uppercase tracking-wider text-lg shadow-brutalist-sm hover:bg-accent hover:text-black hover:shadow-brutalist hover:-translate-y-1 transition-all">
+              START PREPARING
+            </button>
+          </Link>
         </div>
       </div>
     </section>

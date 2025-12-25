@@ -21,7 +21,6 @@ export default function ContributeSection() {
 
   const handleContribute = () => {
     if (!isLoggedIn) {
-      alert("Please login to share your materials!");
       router.push("/login");
       return;
     }
@@ -41,12 +40,12 @@ export default function ContributeSection() {
         <h2 className="text-5xl md:text-9xl font-black italic tracking-tighter leading-none mb-10 max-w-4xl">
           CONTRIBUTE <br />
           <span className="text-yellow-400">KNOWLEDGE</span> <br />
-          WIN CREDITS.
+          
         </h2>
 
         <p className="text-gray-400 text-lg md:text-2xl font-bold max-w-2xl leading-relaxed mb-16">
           Have a useful HR doc or a company tracking sheet? 
-          Share it with the community and help fellow students crack their dream placements.
+          Share it with the community and help fellow students crack their placements.
         </p>
 
         <div className="flex flex-col md:flex-row gap-8 w-full max-w-2xl">
@@ -68,7 +67,10 @@ export default function ContributeSection() {
       <UploadModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        onUploadSuccess={() => router.push("/resources")}
+        onUploadSuccess={() => {
+          setIsModalOpen(false);
+          router.push("/resources");
+        }}
       />
     </section>
   );
