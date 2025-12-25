@@ -88,19 +88,45 @@ export default function Resources() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
 
-    const { error } = await supabase
-      .from('resources')
-      .delete()
-      .eq('id', deleteTarget.id);
+    try {
+      // If it's a PDF type, delete the file from storage first
+      if (deleteTarget.type === 'PDF' && deleteTarget.storage_url) {
+        // Extract the file path from the storage URL
+        const url = new URL(deleteTarget.storage_url);
+        const pathParts = url.pathname.split('/storage/v1/object/public/resources/');
+        if (pathParts.length > 1) {
+          const filePath = pathParts[1]; // e.g., "user-id/filename.pdf"
+          
+          // Delete from storage
+          const { error: storageError } = await supabase.storage
+            .from('resources')
+            .remove([filePath]);
+          
+          if (storageError) {
+            console.error('Storage deletion error:', storageError);
+            // Continue anyway to delete the database entry
+          }
+        }
+      }
 
-    if (error) {
-      showNotification("Error deleting resource: " + error.message, "error");
-    } else {
-      showNotification("Resource deleted from vault", "success");
-      // Local state update sorted by Realtime, but doing it here for faster feedback
-      setResources(prev => prev.filter(r => r.id !== deleteTarget.id));
+      // Delete from database
+      const { error } = await supabase
+        .from('resources')
+        .delete()
+        .eq('id', deleteTarget.id);
+
+      if (error) {
+        showNotification("Error deleting resource: " + error.message, "error");
+      } else {
+        showNotification("Resource deleted from vault", "success");
+        setResources(prev => prev.filter(r => r.id !== deleteTarget.id));
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+      showNotification("Error deleting resource", "error");
     }
-    setDeleteTarget(null); // Close modal and reset target
+    
+    setDeleteTarget(null);
   };
 
   const handleUpvote = async (resourceId) => {
