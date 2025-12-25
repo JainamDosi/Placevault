@@ -18,7 +18,7 @@ export default function Hero() {
           <div>CRACK</div>
           <div className="relative inline-block my-2 md:my-0 mx-2">
              <span className="relative z-10 px-2 lg:px-4">INTERVIEWS</span>
-             <div className="absolute inset-0 bg-[#F9CC18] -skew-x-6 border-2 md:border-4 border-black"></div>
+             <div className="absolute inset-0 bg-[#F9CC18] -skew-x-6 "></div>
           </div>
           <div>LIKE A PRO.</div>
         </h1>

@@ -51,7 +51,14 @@ export default function LoginPage() {
             )}
           </button>
 
-          <div className="mt-8 pt-8 border-t-4 border-black/10">
+          <div className="mt-8 pt-8 relative">
+            {/* Progress Bar Container */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-black/10 overflow-hidden">
+               {loading && (
+                 <div className="h-full bg-soft-green animate-[loading_1.5s_infinite_linear] w-1/3 shadow-[0_0_10px_rgba(0.5,0,0.2,0.5)]"></div>
+               )}
+            </div>
+            
             <p className="text-[10px] font-black uppercase text-black/40 tracking-widest leading-relaxed">
               By joining, you agree to share your placement data with the community vault.
             </p>

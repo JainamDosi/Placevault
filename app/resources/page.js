@@ -1,14 +1,158 @@
-import { Search, Filter, ExternalLink, Download, Clock } from "lucide-react";
+"use client"
+import { useEffect, useState } from "react";
+import { Search, Filter, ExternalLink, Download, Clock, Bookmark, BookmarkCheck, ChevronUp } from "lucide-react";
+import { useRouter } from 'next/navigation';
+import { createClient } from "@/lib/client";
 
 export default function Resources() {
-  const resources = [
-    { title: "Amazon SDE-1 Interview Guide", category: "HR Script", type: "Docs", author: "PRIYA_SHARMA", date: "DEC 20, 2025", color: "bg-soft-pink" },
-    { title: "Dynamic Programming Masterclass", category: "DSA Roadmap", type: "PDF", author: "CODE_NINJA", date: "DEC 18, 2025", color: "bg-soft-green" },
-    { title: "Financial Services Tracker 2026", category: "Company Sheet", type: "Sheets", author: "PLACEMENT_OFFICER", date: "DEC 15, 2025", color: "bg-soft-blue" },
-    { title: "Google Behavioral Questions", category: "HR Script", type: "Docs", author: "EX_GOOGLE_SDE", date: "DEC 10, 2025", color: "bg-soft-pink" },
-    { title: "Graph Theory Condensed Notes", category: "DSA Roadmap", type: "PDF", author: "ALGO_WIZARD", date: "DEC 05, 2025", color: "bg-soft-green" },
-    { title: "FinTech Hiring Pipeline", category: "Company Sheet", type: "Sheets", author: "DATA_ANALYST", date: "DEC 01, 2025", color: "bg-soft-blue" },
-  ];
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [savedIds, setSavedIds] = useState(new Set());
+  const [upvotedIds, setUpvotedIds] = useState(new Set());
+  const router = useRouter();
+  const supabase = createClient();
+
+  const fetchData = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsLoggedIn(!!session);
+    if (session) {
+      setUser(session.user);
+      
+      // Fetch saved resource IDs
+      const { data: saves } = await supabase
+        .from('saved_resources')
+        .select('resource_id')
+        .eq('user_id', session.user.id);
+      
+      if (saves) setSavedIds(new Set(saves.map(s => s.resource_id)));
+
+      // Fetch upvoted resource IDs
+      const { data: upvotes } = await supabase
+        .from('resource_upvotes')
+        .select('resource_id')
+        .eq('user_id', session.user.id);
+      
+      if (upvotes) setUpvotedIds(new Set(upvotes.map(u => u.resource_id)));
+    }
+
+    // Fetch resources with their counts
+    const { data: allResources } = await supabase
+      .from('resources')
+      .select('*')
+      .order('upvote_count', { ascending: false });
+
+    if (allResources) setResources(allResources);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    // REALTIME SUBSCRIPTION
+    const channel = supabase
+      .channel('resource-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'resources',
+        },
+        (payload) => {
+          setResources(prev => 
+            prev.map(r => r.id === payload.new.id ? { ...r, upvote_count: payload.new.upvote_count } : r)
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleUpvote = async (resourceId) => {
+    if (!isLoggedIn) {
+      alert("Please login to upvote resources!");
+      router.push("/login");
+      return;
+    }
+
+    const isUpvoted = upvotedIds.has(resourceId);
+    
+    // Optimistic Update
+    setResources(prev => prev.map(r => 
+      r.id === resourceId 
+        ? { ...r, upvote_count: isUpvoted ? Math.max(0, r.upvote_count - 1) : r.upvote_count + 1 }
+        : r
+    ));
+    setUpvotedIds(prev => {
+      const next = new Set(prev);
+      if (isUpvoted) next.delete(resourceId); else next.add(resourceId);
+      return next;
+    });
+
+    if (isUpvoted) {
+      await supabase.from('resource_upvotes').delete().eq('user_id', user.id).eq('resource_id', resourceId);
+    } else {
+      await supabase.from('resource_upvotes').insert({ user_id: user.id, resource_id: resourceId });
+    }
+  };
+
+  const handleSave = async (resourceId) => {
+    if (!isLoggedIn) {
+      alert("Please login to save resources to your dashboard!");
+      router.push("/login");
+      return;
+    }
+    
+    const isSaved = savedIds.has(resourceId);
+    
+    if (isSaved) {
+      const { error } = await supabase
+        .from('saved_resources')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('resource_id', resourceId);
+
+      if (!error) {
+        setSavedIds(prev => {
+          const next = new Set(prev);
+          next.delete(resourceId);
+          return next;
+        });
+      }
+    } else {
+      const { error } = await supabase
+        .from('saved_resources')
+        .insert({ user_id: user.id, resource_id: resourceId });
+
+      if (!error) {
+        setSavedIds(prev => {
+          const next = new Set(prev);
+          next.add(resourceId);
+          return next;
+        });
+      }
+    }
+  };
+
+  const getRandomColor = (i) => {
+    const colors = ['bg-soft-pink', 'bg-soft-green', 'bg-soft-blue'];
+    return colors[i % colors.length];
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-4xl font-black animate-bounce italic uppercase tracking-tighter">
+          SYNCING VAULT...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen">
@@ -37,11 +181,20 @@ export default function Resources() {
         {/* Resource Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
           {resources.map((res, i) => (
-            <div key={i} className="brutalist-card bg-white flex flex-col h-full group">
-              <div className={`${res.color} p-6 border-b-4 border-black relative overflow-hidden`}>
-                <span className="category-tag bg-white bg-opacity-80 mb-4 inline-block">
-                  {res.category}
-                </span>
+            <div key={res.id} className="brutalist-card bg-white flex flex-col h-full group relative">
+              <div className={`${getRandomColor(i)} p-6 border-b-4 border-black relative overflow-hidden`}>
+                <div className="flex justify-between items-start mb-4">
+                  <span className="category-tag bg-white bg-opacity-80">
+                    {res.category || 'RESOURCES'}
+                  </span>
+                  <button 
+                    onClick={() => handleUpvote(res.id)}
+                    className={`flex items-center gap-1 px-3 py-1 border-2 border-black font-black text-xs transition-all z-10 ${upvotedIds.has(res.id) ? 'bg-black text-white' : 'bg-white text-black hover:bg-black/5'}`}
+                  >
+                    <ChevronUp size={14} strokeWidth={4} />
+                    {res.upvote_count || 0}
+                  </button>
+                </div>
                 <h3 className="text-2xl min-h-[4rem] group-hover:underline decoration-4 decoration-black">
                   {res.title}
                 </h3>
@@ -49,27 +202,46 @@ export default function Resources() {
               
               <div className="p-6 flex-grow">
                 <div className="flex justify-between items-center mb-6 font-mono text-[10px] uppercase font-bold text-gray-500">
-                  <span>BY {res.author}</span>
-                  <span>{res.date}</span>
+                  <span>BY {res.author_name || 'COMMUNITY'}</span>
+                  <span>{new Date(res.created_at).toLocaleDateString()}</span>
                 </div>
                 
                 <div className="flex gap-4">
-                  <button className="flex-grow brutalist-button py-3 text-sm flex items-center justify-center gap-2">
+                  <a 
+                    href={res.storage_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex-grow brutalist-button py-3 text-sm flex items-center justify-center gap-2"
+                  >
                     {res.type === 'PDF' ? <Download size={18} /> : <ExternalLink size={18} />}
                     {res.type === 'PDF' ? 'DOWNLOAD' : 'OPEN LINK'}
+                  </a>
+                  <button 
+                    onClick={() => handleSave(res.id)}
+                    className={`brutalist-button p-3 shadow-none hover:shadow-brutalist-sm transition-all ${savedIds.has(res.id) ? 'bg-yellow-400' : 'bg-white'}`}
+                    title={savedIds.has(res.id) ? "Saved to Dashboard" : "Save to Dashboard"}
+                  >
+                    {savedIds.has(res.id) ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
                   </button>
                 </div>
               </div>
             </div>
           ))}
+          {resources.length === 0 && (
+            <div className="col-span-full brutalist-card bg-gray-50 p-12 text-center border-dashed">
+              <p className="text-2xl font-black text-gray-400 tracking-tighter uppercase">No resources found in the vault yet.</p>
+            </div>
+          )}
         </div>
 
         {/* Pagination/Load More */}
-        <div className="mt-20 mb-20 text-center">
-          <button className="brutalist-button text-2xl px-12 py-6 bg-white hover:bg-black hover:text-white transition-colors">
-            LOAD MORE MISSION DATA
-          </button>
-        </div>
+        {!isLoggedIn && (
+          <div className="mt-20 mb-20 text-center">
+            <button onClick={() => router.push("/login")} className="brutalist-button text-2xl px-12 py-6 bg-white hover:bg-black hover:text-white transition-colors">
+              LOAD MORE MISSION DATA
+            </button>
+          </div>
+        )}
       </div>
     </main>
   );

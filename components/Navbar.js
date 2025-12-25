@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Menu, X, LogOut, User } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from "@/lib/client";
 
 
@@ -10,7 +10,20 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
+
+  const navLinks = [
+    { name: 'Resources', href: '/resources' },
+    { name: 'Piece of Advice', href: '/stories' },
+  ];
+
+  const getLinkStyles = (href) => {
+    const isActive = pathname === href;
+    return isActive 
+      ? "bg-accent text-black border-2 border-black px-3 py-1 shadow-brutalist-sm transform -rotate-1 font-black" 
+      : "hover:text-accent transition-colors py-1";
+  };
 
   useEffect(() => {
     // Get initial session
@@ -44,8 +57,11 @@ export default function Navbar() {
         
         {/* Desktop Menu */}
         <div className="hidden md:flex gap-8 items-center font-bold uppercase text-sm tracking-widest">
-          <Link href="/resources" className="hover:text-accent transition-colors">Resources</Link>
-          <Link href="/stories" className="hover:text-accent transition-colors">Success Stories</Link>
+          {navLinks.map((link) => (
+            <Link key={link.href} href={link.href} className={getLinkStyles(link.href)}>
+              {link.name}
+            </Link>
+          ))}
           
           {user ? (
             <div className="flex items-center gap-4">
@@ -76,8 +92,16 @@ export default function Navbar() {
       {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-white border-b-4 border-black border-t-2 shadow-brutalist py-8 flex flex-col gap-6 items-center font-bold uppercase tracking-widest text-lg">
-          <Link href="/resources" onClick={() => setIsOpen(false)} className="hover:text-accent transition-colors">Resources</Link>
-          <Link href="/stories" onClick={() => setIsOpen(false)} className="hover:text-accent transition-colors">Success Stories</Link>
+          {navLinks.map((link) => (
+            <Link 
+              key={link.href} 
+              href={link.href} 
+              onClick={() => setIsOpen(false)} 
+              className={getLinkStyles(link.href)}
+            >
+              {link.name}
+            </Link>
+          ))}
           
           {user ? (
             <>
