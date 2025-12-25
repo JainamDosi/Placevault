@@ -27,6 +27,7 @@ export default function RootLayout({ children }) {
           <div className="noise-overlay" />
           <Navbar />
           {children}
+          <Analytics />
           <Footer />
         </NotificationProvider>
       </body>
