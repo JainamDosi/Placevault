@@ -12,6 +12,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
     category: "",
     type: "PDF",
     link: "",
+    description: "",
   });
   const [file, setFile] = useState(null);
   const supabase = createClient();
@@ -56,6 +57,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
           category: formData.category,
           type: formData.type,
           storage_url: storageUrl,
+          description: formData.description,
           author_id: session.user.id,
           author_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
         });
@@ -63,7 +65,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
       if (insertError) throw insertError;
 
       showNotification("Resource shared successfully!", "success");
-      setFormData({ title: "", category: "", type: "PDF", link: "" });
+      setFormData({ title: "", category: "", type: "PDF", link: "", description: "" });
       setFile(null);
       onUploadSuccess?.();
       onClose();
@@ -104,6 +106,18 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
               />
             </div>
 
+            <div>
+              <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Description / Tags</label>
+              <textarea 
+                key="input-description"
+                rows={3}
+                placeholder="e.g. Complete guide for behavioral rounds #HR #Amazon #Interviews"
+                value={formData?.description || ""}
+                onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
+                className="w-full bg-gray-50 border-4 border-black p-4 font-bold focus:bg-accent/10 focus:outline-none resize-none"
+              />
+            </div>
+
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Category</label>
@@ -133,13 +147,25 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
 
             {formData.type === "PDF" ? (
               <div>
-                <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Select PDF</label>
+                <label className="block font-black uppercase text-xs tracking-widest mb-2 text-gray-500">Select PDF (Max 3 MB)</label>
                 <div className="relative">
                   <input 
                     required={formData.type === "PDF"}
                     type="file" 
                     accept=".pdf"
-                    onChange={(e) => setFile(e.target.files[0])}
+                    onChange={(e) => {
+                      const selectedFile = e.target.files[0];
+                      if (selectedFile) {
+                        const maxSize = 3 * 1024 * 1024; // 3 MB in bytes
+                        if (selectedFile.size > maxSize) {
+                          showNotification("File too large! Please select a PDF under 3 MB.", "error");
+                          e.target.value = ""; // Clear the input
+                          setFile(null);
+                        } else {
+                          setFile(selectedFile);
+                        }
+                      }
+                    }}
                     className="hidden" 
                     id="file-upload"
                   />
