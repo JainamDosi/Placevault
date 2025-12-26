@@ -175,7 +175,7 @@ export default function Dashboard() {
         <header className="mb-12">
           <div className="relative inline-block mb-2">
             <div className="absolute inset-6 bg-soft-green -skew-x-6  h-1/2"></div>
-            <h1 className="relative z-10 text-3xl md:text-5xl font-black !tracking-wider">
+            <h1 className="relative z-10 text-3xl md:text-5xl font-black tracking-wider!">
               Welcome to PlaceVault!!
             </h1>
           </div>

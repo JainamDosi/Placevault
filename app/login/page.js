@@ -26,7 +26,7 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-white p-4">
       <div className="brutalist-card bg-soft-blue p-6 md:p-12 max-w-md w-full text-center relative overflow-hidden">
         {/* Background Decor */}
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-accent rounded-full border-4 border-black -z-0 opacity-20"></div>
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-accent rounded-full border-4 border-black z-0 opacity-20"></div>
         
         <div className="relative z-10">
           <h1 className="text-4xl md:text-5xl font-black italic tracking-tighter mb-4">

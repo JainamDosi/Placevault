@@ -220,7 +220,7 @@ export default function Resources() {
             <p className="font-bold text-gray-600">Browse verified placement materials from the community.</p>
           </div>
           <div className="flex gap-4 w-full md:w-auto">
-            <div className="relative flex-grow">
+            <div className="relative grow">
               <input 
                 type="text" 
                 placeholder="Search resources..." 
@@ -259,12 +259,12 @@ export default function Resources() {
                     {res.upvote_count || 0}
                   </button>
                 </div>
-                <h3 className="text-2xl min-h-[4rem] group-hover:underline decoration-4 decoration-black">
+                <h3 className="text-2xl min-h-16 group-hover:underline decoration-4 decoration-black">
                   {res.title}
                 </h3>
               </div>
               
-              <div className="p-6 flex-grow">
+              <div className="p-6 grow">
                 <div className="flex justify-between items-center mb-6 font-mono text-[10px] uppercase font-bold text-gray-500">
                   <span>BY {res.author_name || 'COMMUNITY'}</span>
                   <span>{new Date(res.created_at).toLocaleDateString()}</span>
@@ -282,7 +282,7 @@ export default function Resources() {
                   </a>
                   <button 
                     onClick={() => handleSave(res.id)}
-                    className={`brutalist-button p-3 min-w-[3rem] shadow-none hover:shadow-brutalist-sm transition-all ${savedIds.has(res.id) ? 'bg-yellow-400' : 'bg-white'}`}
+                    className={`brutalist-button p-3 min-w-12 shadow-none hover:shadow-brutalist-sm transition-all ${savedIds.has(res.id) ? 'bg-yellow-400' : 'bg-white'}`}
                     title={savedIds.has(res.id) ? "Saved to Dashboard" : "Save to Dashboard"}
                   >
                     {savedIds.has(res.id) ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
@@ -290,7 +290,7 @@ export default function Resources() {
                   {user?.id === res.author_id && (
                     <button 
                       onClick={() => setDeleteTarget(res)}
-                      className="brutalist-button p-3 min-w-[3rem] shadow-none hover:bg-red-500 hover:text-white transition-all bg-white"
+                      className="brutalist-button p-3 min-w-12 shadow-none hover:bg-red-500 hover:text-white transition-all bg-white"
                       title="Delete Resource"
                     >
                       <Trash2 size={20} />
