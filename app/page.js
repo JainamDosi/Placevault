@@ -1,9 +1,23 @@
+"use client";
 import Hero from "@/components/Hero";
 import CareerBot from "@/components/CareerBot";
 import ContributeSection from "@/components/ContributeSection";
 import { Search, FileText, Database, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const router = useRouter();
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      router.push(`/resources?search=${encodeURIComponent(searchTerm)}`);
+    } else {
+      router.push('/resources');
+    }
+  };
   const prepResources = [
     {
       tag: "HR",
@@ -43,16 +57,18 @@ export default function Home() {
             <div className="absolute bottom-1 md:bottom-2 left-0 w-full h-3 md:h-4 bg-accent/60 z-0"></div>
           </div>
           
-          <div className="flex gap-0 mt-6 md:mt-0 w-full md:w-auto shadow-brutalist-sm">
+          <form onSubmit={handleSearch} className="flex gap-0 mt-6 md:mt-0 w-full md:w-auto shadow-brutalist-sm">
              <input 
                 type="text" 
                 placeholder="Search company or topic..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="border-4 border-black border-r-0 p-3 font-bold w-full md:w-72 focus:outline-none focus:bg-accent/10"
              />
-             <button className="bg-black text-white px-8 py-3 font-black uppercase border-4 border-black hover:bg-accent hover:text-black transition-colors">
+             <button type="submit" className="bg-black text-white px-8 py-3 font-black uppercase border-4 border-black hover:bg-accent hover:text-black transition-colors">
                 GO
              </button>
-          </div>
+          </form>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">

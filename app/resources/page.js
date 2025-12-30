@@ -1,17 +1,26 @@
 "use client"
 import { useEffect, useState } from "react";
 import { Search, Filter, ExternalLink, Download, Clock, Bookmark, BookmarkCheck, ChevronUp, Trash2 } from "lucide-react";
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from "@/lib/client";
 import { useNotification } from "@/components/NotificationSystem";
 import ConfirmModal from "@/components/ConfirmModal";
 import UploadModal from "@/components/UploadModal";
+import { Suspense } from "react";
 
-export default function Resources() {
+function ResourcesContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get('search') || "";
+  const initialCategory = searchParams.get('category') || "All";
+
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
+  const [activeCategory, setActiveCategory] = useState(initialCategory);
+  const [showFilters, setShowFilters] = useState(false);
   const [savedIds, setSavedIds] = useState(new Set());
   const [upvotedIds, setUpvotedIds] = useState(new Set());
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -69,12 +78,16 @@ export default function Resources() {
         (payload) => {
           if (payload.eventType === 'UPDATE') {
             setResources(prev => 
-              prev.map(r => r.id === payload.new.id ? { ...r, upvote_count: payload.new.upvote_count } : r)
+              prev.map(r => r.id === payload.new.id ? { ...r, ...payload.new } : r)
             );
           } else if (payload.eventType === 'DELETE') {
             setResources(prev => prev.filter(r => r.id !== payload.old.id));
           } else if (payload.eventType === 'INSERT') {
-            setResources(prev => [payload.new, ...prev]);
+            setResources(prev => {
+              // Prevent duplicates if fetch and realtime collide
+              if (prev.some(r => r.id === payload.new.id)) return prev;
+              return [payload.new, ...prev];
+            });
           }
         }
       )
@@ -200,6 +213,21 @@ export default function Resources() {
     return colors[i % colors.length];
   };
 
+  const categories = ["All", ...new Set(resources.map(res => res.category).filter(Boolean))];
+
+  const filteredResources = resources.filter(res => {
+    const searchLow = searchTerm.toLowerCase();
+    const matchesSearch = 
+      res.title.toLowerCase().includes(searchLow) ||
+      (res.description && res.description.toLowerCase().includes(searchLow)) ||
+      (res.author_name && res.author_name.toLowerCase().includes(searchLow)) ||
+      (res.category && res.category.toLowerCase().includes(searchLow));
+    
+    const matchesCategory = activeCategory === "All" || res.category === activeCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -219,22 +247,53 @@ export default function Resources() {
             <h1 className="text-4xl md:text-6xl mb-4 italic font-black uppercase tracking-tighter">THE RESOURCE VAULT</h1>
             <p className="font-bold text-gray-600">Browse verified placement materials from the community.</p>
           </div>
-          <div className="flex gap-4 w-full md:w-auto">
-            <div className="relative grow">
-              <input 
-                type="text" 
-                placeholder="Search resources..." 
-                className="w-full bg-white border-4 border-black p-4 font-bold focus:bg-accent/10 shadow-brutalist-sm"
-              />
-              <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className="flex flex-col gap-4 w-full md:w-auto">
+            <div className="flex gap-4 w-full">
+              <div className="relative grow">
+                <input 
+                  type="text" 
+                  placeholder="Search resources..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-white border-4 border-black p-4 font-bold focus:bg-accent/10 shadow-brutalist-sm outline-none"
+                />
+                <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className={`border-4 border-black p-4 shadow-brutalist-sm hover:shadow-brutalist transition-all active:translate-x-1 active:translate-y-1 active:shadow-none ${showFilters ? 'bg-black text-white' : 'bg-white text-black'}`}
+                title="Toggle Filters"
+              >
+                <Filter />
+              </button>
+              {isLoggedIn && (
+                <button 
+                  onClick={() => setIsUploadModalOpen(true)}
+                  className="brutalist-button bg-yellow-400 px-6 whitespace-nowrap hidden md:block"
+                >
+                  + CONTRIBUTE
+                </button>
+              )}
             </div>
-            <button className="bg-white border-4 border-black p-4 shadow-brutalist-sm hover:shadow-brutalist transition-all active:translate-x-1 active:translate-y-1 active:shadow-none">
-              <Filter />
-            </button>
+            
+            {showFilters && (
+              <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-4 py-2 border-2 border-black font-black text-xs uppercase tracking-wider transition-all ${activeCategory === cat ? 'bg-black text-white shadow-none translate-x-1 translate-y-1' : 'bg-white text-black shadow-brutalist-sm hover:shadow-brutalist'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
+            
             {isLoggedIn && (
               <button 
                 onClick={() => setIsUploadModalOpen(true)}
-                className="brutalist-button bg-yellow-400 px-6 whitespace-nowrap"
+                className="brutalist-button bg-yellow-400 px-6 whitespace-nowrap md:hidden"
               >
                 + CONTRIBUTE
               </button>
@@ -244,7 +303,7 @@ export default function Resources() {
 
         {/* Resource Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {resources.map((res, i) => (
+          {filteredResources.map((res, i) => (
             <div key={res.id} className="brutalist-card bg-white flex flex-col h-full group relative">
               <div className={`${getRandomColor(i)} p-6 border-b-4 border-black relative overflow-hidden`}>
                 <div className="flex justify-between items-start mb-4">
@@ -300,9 +359,19 @@ export default function Resources() {
               </div>
             </div>
           ))}
-          {resources.length === 0 && (
-            <div className="col-span-full brutalist-card bg-gray-50 p-12 text-center border-dashed">
-              <p className="text-2xl font-black text-gray-400 tracking-tighter uppercase">No resources found in the vault yet.</p>
+          {filteredResources.length === 0 && (
+            <div className="col-span-full brutalist-card bg-gray-50 p-20 text-center border-dashed border-gray-300">
+              <div className="mb-6 flex justify-center">
+                <Search size={64} className="text-gray-300" />
+              </div>
+              <p className="text-3xl font-black text-gray-400 tracking-tighter uppercase mb-2">No matching resources found.</p>
+              <p className="text-gray-500 font-bold mb-8">Try adjusting your search or filters to find what you're looking for.</p>
+              <button 
+                onClick={() => {setSearchTerm(""); setActiveCategory("All");}}
+                className="brutalist-button bg-white px-8"
+              >
+                CLEAR ALL FILTERS
+              </button>
             </div>
           )}
         </div>
@@ -332,5 +401,19 @@ export default function Resources() {
         confirmText="DESTRUCT"
       />
     </main>
+  );
+}
+
+export default function Resources() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-4xl font-black animate-bounce italic uppercase tracking-tighter">
+          LOADING VAULT...
+        </div>
+      </div>
+    }>
+      <ResourcesContent />
+    </Suspense>
   );
 }

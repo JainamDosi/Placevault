@@ -302,24 +302,12 @@ export default function Dashboard() {
                 <p className="text-sm mb-6 text-gray-300 font-medium">
                   Stuck on a technical concept? Ask CareerBot for an instant explanation.
                 </p>
-                <button className="w-full bg-yellow-400 text-black border-2 border-white p-4 font-black uppercase italic hover:bg-white transition-colors">
+                <button className="w-full bg-yellow-400 text-black border-2 border-white p-4 font-black uppercase italic hover:bg-yellow-600 transition-colors">
                   START CHAT
                 </button>
               </div>
 
-              <div className="brutalist-card bg-white p-8 border-soft-blue border-8">
-                <h3 className="text-xl mb-4 italic">SETTINGS</h3>
-                <div className="space-y-2">
-                  <button className="w-full text-left font-bold uppercase text-xs hover:underline decoration-4 decoration-accent">Profile Configuration</button>
-                  <button className="w-full text-left font-bold uppercase text-xs hover:underline decoration-4 decoration-accent">Privacy & Security</button>
-                  <button 
-                    onClick={handleLogout}
-                    className="w-full text-left font-bold uppercase text-xs hover:underline decoration-4 decoration-accent text-red-500"
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
+            
             </div>
           </div>
         </div>

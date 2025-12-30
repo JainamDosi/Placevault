@@ -108,14 +108,12 @@ export default function Stories() {
         </div>
 
         {/* Call to Action */}
-        <div className="mt-24 bg-black text-white p-8 md:p-12 border-4 border-black shadow-brutalist md:flex justify-between items-center relative overflow-hidden">
+        <div className="mt-24 bg-black text-white p-8 md:p-12 border-4 border-accent  md:flex justify-between items-center relative overflow-hidden">
            <div className="relative z-10 text-center md:text-left">
               <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter mb-4">
-                 READY TO BE NEXT?
+                 WOULD LOVE TO HEAR YOU !
               </h2>
-              <p className="text-base md:text-lg font-bold text-gray-400 max-w-xl mx-auto md:mx-0">
-                 Join 5,000+ students accessing the same resources that got these folks placed.
-              </p>
+            
            </div>
            <button 
              onClick={() => setIsModalOpen(true)}
@@ -125,7 +123,7 @@ export default function Stories() {
            </button>
            
            {/* Decorative Background */}
-           <Trophy className="absolute -bottom-10 -right-10 text-gray-800 w-64 h-64 opacity-20 transform rotate-12" />
+           <Trophy className="absolute -bottom-10 -right-10 text-yellow w-64 h-64 opacity-20 transform rotate-12" />
         </div>
 
       </div>

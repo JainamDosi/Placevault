@@ -59,7 +59,7 @@ export default function ContributeSection() {
 
         <div className="mt-20 flex items-center gap-4 text-gray-500 font-black uppercase tracking-widest text-xs">
           <Sparkles className="text-yellow-400" />
-          <span>JOIN 500+ CONTRIBUTORS THIS MONTH</span>
+          <span>JOIN THE COMMUNITY</span>
           <Sparkles className="text-yellow-400" />
         </div>
       </div>
