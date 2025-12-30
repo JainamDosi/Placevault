@@ -1,6 +1,6 @@
 "use client";
 import Hero from "@/components/Hero";
-import CareerBot from "@/components/CareerBot";
+// import CareerBot from "@/components/CareerBot"; // Now global in layout
 import ContributeSection from "@/components/ContributeSection";
 import { Search, FileText, Database, ShieldCheck } from "lucide-react";
 import { useState } from "react";
@@ -108,8 +108,7 @@ export default function Home() {
         <ContributeSection />
       </div>
 
-      {/* Floating CareerBot Assistant */}
-      <CareerBot />
+      {/* Floating CareerBot Assistant moved to layout.js */}
     </main>
   );
 }

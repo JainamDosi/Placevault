@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Send, X, ShieldCheck } from "lucide-react";
+import { useChat } from "./ChatContext";
 
 export default function CareerBot() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { isChatOpen, setIsChatOpen } = useChat();
   const [messages, setMessages] = useState([
     { role: "bot", text: "Hey! I'm CareerBot. How can I help you prepare today?" }
   ]);
@@ -54,9 +55,9 @@ export default function CareerBot() {
 
   return (
     <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[100]">
-      {!isOpen ? (
+      {!isChatOpen ? (
         <button 
-          onClick={() => setIsOpen(true)}
+          onClick={() => setIsChatOpen(true)}
           className="bg-accent border-4 border-black px-4 md:px-6 py-2 md:py-3 shadow-brutalist-sm flex items-center gap-2 md:gap-3 hover:-translate-y-1 hover:shadow-brutalist transition-all"
         >
           <div className="text-black"><ShieldCheck size={20} fill="black" className="text-accent" /></div>
@@ -69,7 +70,7 @@ export default function CareerBot() {
             <h3 className="font-black italic uppercase tracking-tighter flex items-center gap-2">
               <span className="bg-accent text-black p-1 rounded-sm">AI</span> CAREERBOT
             </h3>
-            <button onClick={() => setIsOpen(false)} className="hover:text-accent">
+            <button onClick={() => setIsChatOpen(false)} className="hover:text-accent">
               <X size={24} />
             </button>
           </div>

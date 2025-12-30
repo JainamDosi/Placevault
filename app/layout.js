@@ -15,6 +15,8 @@ export const metadata = {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { NotificationProvider } from "@/components/NotificationSystem";
+import { ChatProvider } from "@/components/ChatContext";
+import CareerBot from "@/components/CareerBot";
 
 export default function RootLayout({ children }) {
   return (
@@ -24,11 +26,14 @@ export default function RootLayout({ children }) {
         suppressHydrationWarning
       >
         <NotificationProvider>
-          <div className="noise-overlay" />
-          <Navbar />
-          {children}
-          <Analytics />
-          <Footer />
+          <ChatProvider>
+            <div className="noise-overlay" />
+            <Navbar />
+            {children}
+            <Analytics />
+            <CareerBot />
+            <Footer />
+          </ChatProvider>
         </NotificationProvider>
       </body>
     </html>

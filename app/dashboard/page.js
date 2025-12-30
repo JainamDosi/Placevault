@@ -6,6 +6,7 @@ import { User, Award, BookOpen, Clock, Trash2 } from "lucide-react";
 import UploadModal from "@/components/UploadModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useNotification } from "@/components/NotificationSystem";
+import { useChat } from "@/components/ChatContext";
 
 export default function Dashboard() {
   const { showNotification } = useNotification();
@@ -18,6 +19,7 @@ export default function Dashboard() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const router = useRouter();
   const supabase = createClient();
+  const { setIsChatOpen } = useChat();
 
   const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -294,22 +296,7 @@ export default function Dashboard() {
           </div>
 
           {/* Sidebar */}
-          <div>
-            <h2 className="text-2xl md:text-3xl mb-8 italic">TOOLS</h2>
-            <div className="space-y-6">
-              <div className="brutalist-card bg-black text-white p-8">
-                <h3 className="text-yellow-400 text-2xl mb-4 italic uppercase">CAREERBOT AI</h3>
-                <p className="text-sm mb-6 text-gray-300 font-medium">
-                  Stuck on a technical concept? Ask CareerBot for an instant explanation.
-                </p>
-                <button className="w-full bg-yellow-400 text-black border-2 border-white p-4 font-black uppercase italic hover:bg-yellow-600 transition-colors">
-                  START CHAT
-                </button>
-              </div>
 
-            
-            </div>
-          </div>
         </div>
       </div>
 

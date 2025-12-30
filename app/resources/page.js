@@ -1,12 +1,65 @@
 "use client"
-import { useEffect, useState } from "react";
-import { Search, Filter, ExternalLink, Download, Clock, Bookmark, BookmarkCheck, ChevronUp, Trash2 } from "lucide-react";
+import { useEffect, useState, Suspense } from "react";
+import { Search, Filter, ExternalLink, Download, Bookmark, BookmarkCheck, ChevronUp, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from "@/lib/client";
 import { useNotification } from "@/components/NotificationSystem";
 import ConfirmModal from "@/components/ConfirmModal";
 import UploadModal from "@/components/UploadModal";
-import { Suspense } from "react";
+
+// --- SUB-COMPONENTS ---
+
+const ResourceCard = ({ res, idx, user, savedIds, upvotedIds, onUpvote, onSave, onDelete }) => {
+  const colors = ['bg-soft-pink', 'bg-soft-green', 'bg-soft-blue'];
+  const cardColor = colors[idx % colors.length];
+
+  return (
+    <div className="brutalist-card bg-white flex flex-col h-full group relative">
+      <div className={`${cardColor} p-6 border-b-4 border-black relative overflow-hidden`}>
+        <div className="flex justify-between items-start mb-4">
+          <span className="category-tag bg-white bg-opacity-80">
+            {res.category || 'RESOURCES'}
+          </span>
+          <button 
+            onClick={() => onUpvote(res.id)}
+            className={`flex items-center gap-1 px-3 py-1 border-2 border-black font-black text-xs transition-all z-10 ${upvotedIds.has(res.id) ? 'bg-black text-white' : 'bg-white text-black hover:bg-black/5'}`}
+          >
+            <ChevronUp size={14} strokeWidth={4} />
+            {res.upvote_count || 0}
+          </button>
+        </div>
+        <h3 className="text-2xl min-h-16 group-hover:underline decoration-4 decoration-black">{res.title}</h3>
+      </div>
+      
+      <div className="p-6 grow">
+        <div className="flex justify-between items-center mb-6 font-mono text-[10px] uppercase font-bold text-gray-500">
+          <span>BY {res.author_name || 'COMMUNITY'}</span>
+          <span>{new Date(res.created_at).toLocaleDateString()}</span>
+        </div>
+        
+        <div className="flex gap-3">
+          <a href={res.storage_url} target="_blank" rel="noopener noreferrer" 
+             className="flex-grow brutalist-button py-3 px-4 text-sm flex items-center justify-center gap-2">
+            {res.type === 'PDF' ? <Download size={18} /> : <ExternalLink size={18} />}
+            {res.type === 'PDF' ? 'DOWNLOAD' : 'OPEN LINK'}
+          </a>
+          <button onClick={() => onSave(res.id)}
+            className={`brutalist-button p-3 min-w-12 shadow-none hover:shadow-brutalist-sm transition-all ${savedIds.has(res.id) ? 'bg-yellow-400' : 'bg-white'}`}>
+            {savedIds.has(res.id) ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
+          </button>
+          {user?.id === res.author_id && (
+            <button onClick={() => onDelete(res)}
+              className="brutalist-button p-3 min-w-12 shadow-none hover:bg-red-500 hover:text-white transition-all bg-white">
+              <Trash2 size={20} />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN CONTENT ---
 
 function ResourcesContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -15,16 +68,14 @@ function ResourcesContent() {
   const [loading, setLoading] = useState(true);
   
   const searchParams = useSearchParams();
-  const initialSearch = searchParams.get('search') || "";
-  const initialCategory = searchParams.get('category') || "All";
-
-  const [searchTerm, setSearchTerm] = useState(initialSearch);
-  const [activeCategory, setActiveCategory] = useState(initialCategory);
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "");
+  const [activeCategory, setActiveCategory] = useState(searchParams.get('category') || "All");
   const [showFilters, setShowFilters] = useState(false);
   const [savedIds, setSavedIds] = useState(new Set());
   const [upvotedIds, setUpvotedIds] = useState(new Set());
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
   const router = useRouter();
   const supabase = createClient();
   const { showNotification } = useNotification();
@@ -34,385 +85,134 @@ function ResourcesContent() {
     setIsLoggedIn(!!session);
     if (session) {
       setUser(session.user);
-      
-      // Fetch saved resource IDs
-      const { data: saves } = await supabase
-        .from('saved_resources')
-        .select('resource_id')
-        .eq('user_id', session.user.id);
-      
+      const { data: saves } = await supabase.from('saved_resources').select('resource_id').eq('user_id', session.user.id);
       if (saves) setSavedIds(new Set(saves.map(s => s.resource_id)));
-
-      // Fetch upvoted resource IDs
-      const { data: upvotes } = await supabase
-        .from('resource_upvotes')
-        .select('resource_id')
-        .eq('user_id', session.user.id);
-      
+      const { data: upvotes } = await supabase.from('resource_upvotes').select('resource_id').eq('user_id', session.user.id);
       if (upvotes) setUpvotedIds(new Set(upvotes.map(u => u.resource_id)));
     }
-
-    // Fetch resources with their counts
-    const { data: allResources } = await supabase
-      .from('resources')
-      .select('*')
-      .order('upvote_count', { ascending: false });
-
+    const { data: allResources } = await supabase.from('resources').select('*').order('upvote_count', { ascending: false });
     if (allResources) setResources(allResources);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-
-    // REALTIME SUBSCRIPTION
-    const channel = supabase
-      .channel('resource-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to ALL events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'resources',
-        },
-        (payload) => {
-          if (payload.eventType === 'UPDATE') {
-            setResources(prev => 
-              prev.map(r => r.id === payload.new.id ? { ...r, ...payload.new } : r)
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setResources(prev => prev.filter(r => r.id !== payload.old.id));
-          } else if (payload.eventType === 'INSERT') {
-            setResources(prev => {
-              // Prevent duplicates if fetch and realtime collide
-              if (prev.some(r => r.id === payload.new.id)) return prev;
-              return [payload.new, ...prev];
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const sub = supabase.channel('resources').on('postgres_changes', { event: '*', schema: 'public', table: 'resources' }, (payload) => {
+      if (payload.eventType === 'UPDATE') setResources(p => p.map(r => r.id === payload.new.id ? { ...r, ...payload.new } : r));
+      else if (payload.eventType === 'DELETE') setResources(p => p.filter(r => r.id !== payload.old.id));
+      else if (payload.eventType === 'INSERT') setResources(p => p.some(r => r.id === payload.new.id) ? p : [payload.new, ...p]);
+    }).subscribe();
+    return () => supabase.removeChannel(sub);
   }, []);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-
     try {
-      // If it's a PDF type, delete the file from storage first
       if (deleteTarget.type === 'PDF' && deleteTarget.storage_url) {
-        // Extract the file path from the storage URL
-        const url = new URL(deleteTarget.storage_url);
-        const pathParts = url.pathname.split('/storage/v1/object/public/resources/');
-        if (pathParts.length > 1) {
-          const filePath = pathParts[1]; // e.g., "user-id/filename.pdf"
-          
-          // Delete from storage
-          const { error: storageError } = await supabase.storage
-            .from('resources')
-            .remove([filePath]);
-          
-          if (storageError) {
-            console.error('Storage deletion error:', storageError);
-            // Continue anyway to delete the database entry
-          }
-        }
+        const path = new URL(deleteTarget.storage_url).pathname.split('/storage/v1/object/public/resources/')[1];
+        if (path) await supabase.storage.from('resources').remove([path]);
       }
-
-      // Delete from database
-      const { error } = await supabase
-        .from('resources')
-        .delete()
-        .eq('id', deleteTarget.id);
-
-      if (error) {
-        showNotification("Error deleting resource: " + error.message, "error");
-      } else {
-        showNotification("Resource deleted from vault", "success");
-        setResources(prev => prev.filter(r => r.id !== deleteTarget.id));
+      const { error } = await supabase.from('resources').delete().eq('id', deleteTarget.id);
+      if (!error) {
+        showNotification("Deleted from vault", "success");
+        setResources(p => p.filter(r => r.id !== deleteTarget.id));
       }
-    } catch (err) {
-      console.error('Delete error:', err);
-      showNotification("Error deleting resource", "error");
-    }
-    
+    } catch (e) { console.error(e); }
     setDeleteTarget(null);
   };
 
-  const handleUpvote = async (resourceId) => {
-    if (!isLoggedIn) {
-      showNotification("Please login to upvote resources!", "error");
-      router.push("/login");
-      return;
-    }
-
-    const isUpvoted = upvotedIds.has(resourceId);
-    
-    // Optimistic Update
-    setResources(prev => prev.map(r => 
-      r.id === resourceId 
-        ? { ...r, upvote_count: isUpvoted ? Math.max(0, r.upvote_count - 1) : r.upvote_count + 1 }
-        : r
-    ));
-    setUpvotedIds(prev => {
-      const next = new Set(prev);
-      if (isUpvoted) next.delete(resourceId); else next.add(resourceId);
-      return next;
-    });
-
-    if (isUpvoted) {
-      await supabase.from('resource_upvotes').delete().eq('user_id', user.id).eq('resource_id', resourceId);
-    } else {
-      await supabase.from('resource_upvotes').insert({ user_id: user.id, resource_id: resourceId });
-    }
+  const handleUpvote = async (id) => {
+    if (!isLoggedIn) return router.push("/login");
+    const upvoted = upvotedIds.has(id);
+    setResources(p => p.map(r => r.id === id ? { ...r, upvote_count: upvoted ? r.upvote_count - 1 : r.upvote_count + 1 } : r));
+    setUpvotedIds(p => { const n = new Set(p); upvoted ? n.delete(id) : n.add(id); return n; });
+    if (upvoted) await supabase.from('resource_upvotes').delete().eq('user_id', user.id).eq('resource_id', id);
+    else await supabase.from('resource_upvotes').insert({ user_id: user.id, resource_id: id });
   };
 
-  const handleSave = async (resourceId) => {
-    if (!isLoggedIn) {
-      alert("Please login to save resources to your dashboard!");
-      router.push("/login");
-      return;
-    }
-    
-    const isSaved = savedIds.has(resourceId);
-    
-    if (isSaved) {
-      const { error } = await supabase
-        .from('saved_resources')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('resource_id', resourceId);
-
-      if (!error) {
-        setSavedIds(prev => {
-          const next = new Set(prev);
-          next.delete(resourceId);
-          return next;
-        });
-      }
-    } else {
-      const { error } = await supabase
-        .from('saved_resources')
-        .insert({ user_id: user.id, resource_id: resourceId });
-
-      if (!error) {
-        setSavedIds(prev => {
-          const next = new Set(prev);
-          next.add(resourceId);
-          return next;
-        });
-      }
-    }
+  const handleSave = async (id) => {
+    if (!isLoggedIn) return router.push("/login");
+    const saved = savedIds.has(id);
+    const { error } = saved ? await supabase.from('saved_resources').delete().eq('user_id', user.id).eq('resource_id', id)
+                            : await supabase.from('saved_resources').insert({ user_id: user.id, resource_id: id });
+    if (!error) setSavedIds(p => { const n = new Set(p); saved ? n.delete(id) : n.add(id); return n; });
   };
 
-  const getRandomColor = (i) => {
-    const colors = ['bg-soft-pink', 'bg-soft-green', 'bg-soft-blue'];
-    return colors[i % colors.length];
-  };
-
-  const categories = ["All", ...new Set(resources.map(res => res.category).filter(Boolean))];
-
-  const filteredResources = resources.filter(res => {
-    const searchLow = searchTerm.toLowerCase();
-    const matchesSearch = 
-      res.title.toLowerCase().includes(searchLow) ||
-      (res.description && res.description.toLowerCase().includes(searchLow)) ||
-      (res.author_name && res.author_name.toLowerCase().includes(searchLow)) ||
-      (res.category && res.category.toLowerCase().includes(searchLow));
-    
-    const matchesCategory = activeCategory === "All" || res.category === activeCategory;
-    
-    return matchesSearch && matchesCategory;
+  const categories = ["All", ...new Set(resources.map(r => r.category).filter(Boolean))];
+  const filtered = resources.filter(r => {
+    const s = searchTerm.toLowerCase();
+    const match = r.title.toLowerCase().includes(s) || (r.description?.toLowerCase().includes(s)) || (r.category?.toLowerCase().includes(s));
+    return match && (activeCategory === "All" || r.category === activeCategory);
   });
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-4xl font-black animate-bounce italic uppercase tracking-tighter">
-          SYNCING VAULT...
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-black animate-pulse italic">SYNCING VAULT...</div>;
 
   return (
-    <main className="min-h-screen">
-      
-      <div className="px-4 md:px-8 max-w-7xl mx-auto py-12 md:py-20">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8">
+    <main className="min-h-screen bg-white">
+      <div className="px-4 md:px-8 max-w-7xl mx-auto py-10 md:py-20">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 md:mb-20 gap-8">
           <div>
-            <h1 className="text-4xl md:text-6xl mb-4 italic font-black uppercase tracking-tighter">THE RESOURCE VAULT</h1>
-            <p className="font-bold text-gray-600">Browse verified placement materials from the community.</p>
+            <h1 className="text-4xl md:text-6xl italic font-black uppercase tracking-tighter leading-none mb-4">THE RESOURCE VAULT</h1>
+            <p className="font-bold text-gray-600 max-w-md">Browse verified placement materials from the community.</p>
           </div>
-          <div className="flex flex-col gap-4 w-full md:w-auto">
-            <div className="flex gap-4 w-full">
-              <div className="relative grow">
-                <input 
-                  type="text" 
-                  placeholder="Search resources..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-white border-4 border-black p-4 font-bold focus:bg-accent/10 shadow-brutalist-sm outline-none"
-                />
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className="flex flex-col gap-4 w-full md:max-w-xl">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-grow">
+                <input type="text" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full bg-white border-4 border-black p-4 font-bold outline-none shadow-brutalist-sm focus:bg-accent/5" />
+                <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               </div>
-              <button 
-                onClick={() => setShowFilters(!showFilters)}
-                className={`border-4 border-black p-4 shadow-brutalist-sm hover:shadow-brutalist transition-all active:translate-x-1 active:translate-y-1 active:shadow-none ${showFilters ? 'bg-black text-white' : 'bg-white text-black'}`}
-                title="Toggle Filters"
-              >
-                <Filter />
-              </button>
-              {isLoggedIn && (
-                <button 
-                  onClick={() => setIsUploadModalOpen(true)}
-                  className="brutalist-button bg-yellow-400 px-6 whitespace-nowrap hidden md:block"
-                >
-                  + CONTRIBUTE
+              <div className="flex gap-4">
+                <button onClick={() => setShowFilters(!showFilters)} className={`border-4 border-black p-4 shadow-brutalist-sm hover:shadow-brutalist transition-all ${showFilters ? 'bg-black text-white' : 'bg-white text-black'}`}>
+                  <Filter size={20} />
                 </button>
-              )}
+                {isLoggedIn && <button onClick={() => setIsUploadModalOpen(true)} className="brutalist-button bg-yellow-400 px-6 hidden sm:block">+ CONTRIBUTE</button>}
+              </div>
             </div>
-            
             {showFilters && (
-              <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2">
                 {categories.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={`px-4 py-2 border-2 border-black font-black text-xs uppercase tracking-wider transition-all ${activeCategory === cat ? 'bg-black text-white shadow-none translate-x-1 translate-y-1' : 'bg-white text-black shadow-brutalist-sm hover:shadow-brutalist'}`}
-                  >
+                  <button key={cat} onClick={() => setActiveCategory(cat)}
+                    className={`px-4 py-2 border-2 border-black font-black text-xs uppercase tracking-wider transition-all ${activeCategory === cat ? 'bg-black text-white' : 'bg-white hover:bg-black/5 shadow-brutalist-sm'}`}>
                     {cat}
                   </button>
                 ))}
               </div>
             )}
-            
-            {isLoggedIn && (
-              <button 
-                onClick={() => setIsUploadModalOpen(true)}
-                className="brutalist-button bg-yellow-400 px-6 whitespace-nowrap md:hidden"
-              >
-                + CONTRIBUTE
-              </button>
-            )}
+            {isLoggedIn && <button onClick={() => setIsUploadModalOpen(true)} className="brutalist-button bg-yellow-400 w-full py-4 sm:hidden">+ CONTRIBUTE</button>}
           </div>
         </header>
 
-        {/* Resource Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {filteredResources.map((res, i) => (
-            <div key={res.id} className="brutalist-card bg-white flex flex-col h-full group relative">
-              <div className={`${getRandomColor(i)} p-6 border-b-4 border-black relative overflow-hidden`}>
-                <div className="flex justify-between items-start mb-4">
-                  <span className="category-tag bg-white bg-opacity-80">
-                    {res.category || 'RESOURCES'}
-                  </span>
-                  <button 
-                    onClick={() => handleUpvote(res.id)}
-                    className={`flex items-center gap-1 px-3 py-1 border-2 border-black font-black text-xs transition-all z-10 ${upvotedIds.has(res.id) ? 'bg-black text-white' : 'bg-white text-black hover:bg-black/5'}`}
-                  >
-                    <ChevronUp size={14} strokeWidth={4} />
-                    {res.upvote_count || 0}
-                  </button>
-                </div>
-                <h3 className="text-2xl min-h-16 group-hover:underline decoration-4 decoration-black">
-                  {res.title}
-                </h3>
-              </div>
-              
-              <div className="p-6 grow">
-                <div className="flex justify-between items-center mb-6 font-mono text-[10px] uppercase font-bold text-gray-500">
-                  <span>BY {res.author_name || 'COMMUNITY'}</span>
-                  <span>{new Date(res.created_at).toLocaleDateString()}</span>
-                </div>
-                
-                <div className="flex gap-3">
-                  <a 
-                    href={res.storage_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex-grow brutalist-button py-3 px-4 text-sm flex items-center justify-center gap-2"
-                  >
-                    {res.type === 'PDF' ? <Download size={18} /> : <ExternalLink size={18} />}
-                    {res.type === 'PDF' ? 'DOWNLOAD' : 'OPEN LINK'}
-                  </a>
-                  <button 
-                    onClick={() => handleSave(res.id)}
-                    className={`brutalist-button p-3 min-w-12 shadow-none hover:shadow-brutalist-sm transition-all ${savedIds.has(res.id) ? 'bg-yellow-400' : 'bg-white'}`}
-                    title={savedIds.has(res.id) ? "Saved to Dashboard" : "Save to Dashboard"}
-                  >
-                    {savedIds.has(res.id) ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
-                  </button>
-                  {user?.id === res.author_id && (
-                    <button 
-                      onClick={() => setDeleteTarget(res)}
-                      className="brutalist-button p-3 min-w-12 shadow-none hover:bg-red-500 hover:text-white transition-all bg-white"
-                      title="Delete Resource"
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-10">
+          {filtered.map((res, i) => (
+            <ResourceCard key={res.id} res={res} idx={i} user={user} savedIds={savedIds} upvotedIds={upvotedIds} 
+              onUpvote={handleUpvote} onSave={handleSave} onDelete={setDeleteTarget} />
           ))}
-          {filteredResources.length === 0 && (
-            <div className="col-span-full brutalist-card bg-gray-50 p-20 text-center border-dashed border-gray-300">
-              <div className="mb-6 flex justify-center">
-                <Search size={64} className="text-gray-300" />
-              </div>
-              <p className="text-3xl font-black text-gray-400 tracking-tighter uppercase mb-2">No matching resources found.</p>
-              <p className="text-gray-500 font-bold mb-8">Try adjusting your search or filters to find what you're looking for.</p>
-              <button 
-                onClick={() => {setSearchTerm(""); setActiveCategory("All");}}
-                className="brutalist-button bg-white px-8"
-              >
-                CLEAR ALL FILTERS
-              </button>
+          {!filtered.length && (
+            <div className="col-span-full border-4 border-dashed border-gray-200 p-20 text-center">
+              <p className="text-3xl font-black text-gray-300 uppercase italic">No matches found</p>
+              <button onClick={() => {setSearchTerm(""); setActiveCategory("All")}} className="mt-8 brutalist-button bg-white px-8">CLEAR ALL</button>
             </div>
           )}
         </div>
 
-        {/* Pagination/Load More */}
         {!isLoggedIn && resources.length > 0 && (
-          <div className="mt-20 mb-20 text-center">
-            <button onClick={() => router.push("/login")} className="brutalist-button text-2xl px-12 py-6 bg-white hover:bg-black hover:text-white transition-colors">
-              LOAD MORE MISSION DATA
-            </button>
+          <div className="mt-20 text-center">
+            <button onClick={() => router.push("/login")} className="brutalist-button text-xl md:text-2xl px-12 py-6 bg-white shrink-0">LOAD MORE MISSION DATA</button>
           </div>
         )}
       </div>
 
-      <UploadModal 
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-        onUploadSuccess={fetchData}
-      />
-
-      <ConfirmModal 
-        isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDelete}
-        title="Delete Resource"
-        message={`Are you sure you want to delete "${deleteTarget?.title}"? This action is permanent and cannot be undone.`}
-        confirmText="DESTRUCT"
-      />
+      <UploadModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} onUploadSuccess={fetchData} />
+      <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Delete Resource" confirmText="DESTRUCT"
+        message={`Delete "${deleteTarget?.title}" permanently?`} />
     </main>
   );
 }
 
 export default function Resources() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-4xl font-black animate-bounce italic uppercase tracking-tighter">
-          LOADING VAULT...
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-black italic">LOADING...</div>}>
       <ResourcesContent />
     </Suspense>
   );

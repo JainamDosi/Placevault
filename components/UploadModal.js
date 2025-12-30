@@ -87,8 +87,8 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
           <X size={20} />
         </button>
 
-        <div className="p-8">
-          <h2 className="text-3xl !font-black italic mb-8 uppercase tracking-tighter">
+        <div className="p-5 md:p-8 max-h-[90vh] overflow-y-auto">
+          <h2 className="text-2xl md:text-3xl !font-black italic mb-6 md:mb-8 uppercase tracking-tighter">
             Contribute to Vault
           </h2>
 
