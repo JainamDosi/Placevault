@@ -8,8 +8,8 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "PlaceVault | High-Performance Placement Prep",
-  description: "Mission-critical placement materials for career seekers.",
+  title: "PlaceVault",
+  description: "placement materials for career seekers.",
 };
 
 import Navbar from "@/components/Navbar";
