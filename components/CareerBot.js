@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Send, X, ShieldCheck } from "lucide-react";
 
 export default function CareerBot() {
@@ -9,20 +9,47 @@ export default function CareerBot() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage = { role: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI response for now (to be connected to API)
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { role: "bot", text: "I'm currently in 'Demo Mode'. Once the API key is set up, I'll be able to help you with technical and behavioral questions!" }]);
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          messages: [...messages, userMessage] 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.text) {
+        setMessages((prev) => [...prev, { role: "bot", text: data.text }]);
+      } else {
+        throw new Error("No response");
+      }
+    } catch (error) {
+      console.error("Chat Error:", error);
+      setMessages((prev) => [...prev, { 
+        role: "bot", 
+        text: "SYSTEM ERROR! 💀 I've lost connection to the main vault. Try again shortly." 
+      }]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -48,11 +75,31 @@ export default function CareerBot() {
           </div>
 
           {/* Messages */}
-          <div className="flex-grow p-4 overflow-y-auto space-y-4 bg-[#f0f0f0] font-medium">
+          <div ref={scrollRef} className="flex-grow p-4 overflow-y-auto space-y-4 bg-[#f0f0f0] font-medium scroll-smooth">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] p-3 border-2 border-black shadow-brutalist-sm ${msg.role === 'user' ? 'bg-soft-blue' : 'bg-white'}`}>
-                  <p className="text-sm">{msg.text}</p>
+                  <div className="text-sm space-y-2">
+                    {msg.text.split('\n').map((line, lineIdx) => {
+                      // Handle Bullet Points
+                      if (line.trim().startsWith('* ') || line.trim().startsWith('- ')) {
+                        return <div key={lineIdx} className="flex gap-2"><span>•</span><span>{line.trim().substring(2)}</span></div>;
+                      }
+                      
+                      // Handle Bold Text (replace **text** with <strong>text</strong>)
+                      const parts = line.split(/(\*\*.*?\*\*)/g);
+                      return (
+                        <p key={lineIdx}>
+                          {parts.map((part, partIdx) => {
+                            if (part.startsWith('**') && part.endsWith('**')) {
+                              return <strong key={partIdx}>{part.slice(2, -2)}</strong>;
+                            }
+                            return part;
+                          })}
+                        </p>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             ))}
