@@ -46,7 +46,7 @@ export default function Stories() {
         {/* Header */}
         <header className="mb-20 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
           <div>
-            <div className="inline-block bg-[#F9CC18] px-4 py-1 border-2 border-black font-black uppercase tracking-widest text-sm mb-4 shadow-brutalist-sm transform -rotate-1">
+            <div className="inline-block bg-accent px-4 py-1 border-2 border-black font-black uppercase tracking-widest text-sm mb-4 shadow-brutalist-sm transform -rotate-1">
               Real Advice
             </div>
             <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter mb-4 leading-none uppercase">
@@ -117,7 +117,7 @@ export default function Stories() {
            </div>
            <button 
              onClick={() => setIsModalOpen(true)}
-             className="mt-8 md:mt-0 w-full md:w-auto bg-[#F9CC18] text-black px-8 py-4 font-black uppercase italic text-lg md:text-xl border-4 border-white hover:bg-white hover:border-[#F9CC18] transition-colors relative z-10 flex items-center justify-center gap-2"
+             className="mt-8 md:mt-0 w-full md:w-auto bg-accent text-black px-8 py-4 font-black uppercase italic text-lg md:text-xl border-4 border-white hover:bg-white hover:border-[#F9CC18] transition-colors relative z-10 flex items-center justify-center gap-2"
            >
               SHARE YOUR STORY <ArrowRight strokeWidth={3} />
            </button>

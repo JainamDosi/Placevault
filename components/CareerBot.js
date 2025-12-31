@@ -54,7 +54,7 @@ export default function CareerBot() {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[100]">
+    <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-100">
       {!isChatOpen ? (
         <button 
           onClick={() => setIsChatOpen(true)}
@@ -76,7 +76,7 @@ export default function CareerBot() {
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-grow p-4 overflow-y-auto space-y-4 bg-[#f0f0f0] font-medium scroll-smooth">
+          <div ref={scrollRef} className="grow p-4 overflow-y-auto space-y-4 bg-[#f0f0f0] font-medium scroll-smooth">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] p-3 border-2 border-black shadow-brutalist-sm ${msg.role === 'user' ? 'bg-soft-blue' : 'bg-white'}`}>
@@ -121,7 +121,7 @@ export default function CareerBot() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Ask anything..."
-              className="flex-grow bg-[#F8F8F8] border-2 border-black p-2 text-sm font-bold focus:outline-none focus:bg-accent/10"
+              className="grow bg-[#F8F8F8] border-2 border-black p-2 text-sm font-bold focus:outline-none focus:bg-accent/10"
             />
             <button 
               onClick={handleSend}

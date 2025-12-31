@@ -39,7 +39,7 @@ const ResourceCard = ({ res, idx, user, savedIds, upvotedIds, onUpvote, onSave, 
         
         <div className="flex gap-3">
           <a href={res.storage_url} target="_blank" rel="noopener noreferrer" 
-             className="flex-grow brutalist-button py-3 px-4 text-sm flex items-center justify-center gap-2">
+             className="grow brutalist-button py-3 px-4 text-sm flex items-center justify-center gap-2">
             {res.type === 'PDF' ? <Download size={18} /> : <ExternalLink size={18} />}
             {res.type === 'PDF' ? 'DOWNLOAD' : 'OPEN LINK'}
           </a>
@@ -157,7 +157,7 @@ function ResourcesContent() {
           </div>
           <div className="flex flex-col gap-4 w-full md:max-w-xl">
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-grow">
+              <div className="relative grow">
                 <input type="text" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                   className="w-full bg-white border-4 border-black p-4 font-bold outline-none shadow-brutalist-sm focus:bg-accent/5" />
                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />

@@ -24,7 +24,7 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
           <div className="flex gap-4">
             <button 
               onClick={onClose}
-              className="flex-grow brutalist-button bg-gray-100 hover:bg-gray-200 text-sm py-4"
+              className="grow brutalist-button bg-gray-100 hover:bg-gray-200 text-sm py-4"
             >
               {cancelText}
             </button>
@@ -33,7 +33,7 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
                 onConfirm();
                 onClose();
               }}
-              className={`flex-grow brutalist-button text-white text-sm py-4 ${type === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-black'}`}
+              className={`grow brutalist-button text-white text-sm py-4 ${type === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-black'}`}
             >
               {confirmText}
             </button>
