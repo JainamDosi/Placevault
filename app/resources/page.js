@@ -7,7 +7,56 @@ import { useNotification } from "@/components/NotificationSystem";
 import ConfirmModal from "@/components/ConfirmModal";
 import UploadModal from "@/components/UploadModal";
 
+// --- DUMMY DATA ---
+const DUMMY_RESOURCES = [
+  {
+    id: 'dummy-1',
+    title: 'Machine Learning',
+    category: 'AI/ML',
+    author_name: 'Community',
+    created_at: new Date('2025-01-10').toISOString(),
+    storage_url: 'https://www.youtube.com/playlist?list=PLKnIA16_Rmvbr7zKYQuBfsVkjoLcJgxHH',
+    type: 'LINK',
+    upvote_count: 0,
+    description: 'Indepth ML'
+  },
+  {
+    id: 'dummy-2',
+    title: 'Deep Learning',
+    category: 'AI/ML',
+    author_name: 'Community',
+    created_at: new Date('2024-01-08').toISOString(),
+    storage_url: 'https://www.youtube.com/playlist?list=PLKnIA16_RmvYuZauWaPlRTC54KxSNLtNn',
+    type: 'LINK',
+    upvote_count: 0,
+    description: 'Deep Learning playlist'
+  },
+  {
+    id: 'dummy-3',
+    title: 'System Design HLD',
+    category: 'system design',
+    author_name: 'Community',
+    created_at: new Date('2024-01-05').toISOString(),
+    storage_url: 'https://www.youtube.com/playlist?list=PLMCXHnjXnTnvo6alSjVkgxV-VH6EPyvoX',
+    type: 'LINK',
+    upvote_count: 0,
+    description: 'System Design core concepts'
+  },
+  {
+    id: 'dummy-4',
+    title: 'LLD end to end',
+    category: 'system design',
+    author_name: 'Community',
+    created_at: new Date('2024-01-11').toISOString(),
+    storage_url: 'https://www.youtube.com/playlist?list=PLQEaRBV9gAFvzp6XhcNFpk1WdOcyVo9qT',
+    type: 'LINK',
+    upvote_count: 0,
+    description: 'LLD series'
+  }
+];
+
 // --- SUB-COMPONENTS ---
+
 
 const ResourceCard = ({ res, idx, user, savedIds, upvotedIds, onUpvote, onSave, onDelete }) => {
   const colors = ['bg-soft-pink', 'bg-soft-green', 'bg-soft-blue'];
@@ -28,7 +77,8 @@ const ResourceCard = ({ res, idx, user, savedIds, upvotedIds, onUpvote, onSave, 
             {res.upvote_count || 0}
           </button>
         </div>
-        <h3 className="text-2xl min-h-16 group-hover:underline decoration-4 decoration-black">{res.title}</h3>
+        <h3 className="text-2xl font-black group-hover:underline decoration-4 decoration-black leading-tight mb-2">{res.title}</h3>
+        <p className="text-xs font-bold text-black/60 line-clamp-2 uppercase tracking-wide">{res.description || 'No description provided.'}</p>
       </div>
       
       <div className="p-6 grow">
@@ -91,7 +141,14 @@ function ResourcesContent() {
       if (upvotes) setUpvotedIds(new Set(upvotes.map(u => u.resource_id)));
     }
     const { data: allResources } = await supabase.from('resources').select('*').order('upvote_count', { ascending: false });
-    if (allResources) setResources(allResources);
+    
+    // Merge real data with dummy data
+    const combinedResources = [
+      ...(allResources || []),
+      ...DUMMY_RESOURCES
+    ];
+    
+    setResources(combinedResources);
     setLoading(false);
   };
 
@@ -126,6 +183,10 @@ function ResourcesContent() {
     const upvoted = upvotedIds.has(id);
     setResources(p => p.map(r => r.id === id ? { ...r, upvote_count: upvoted ? r.upvote_count - 1 : r.upvote_count + 1 } : r));
     setUpvotedIds(p => { const n = new Set(p); upvoted ? n.delete(id) : n.add(id); return n; });
+    
+    // Skip Supabase for dummy items
+    if (id.toString().startsWith('dummy-')) return;
+
     if (upvoted) await supabase.from('resource_upvotes').delete().eq('user_id', user.id).eq('resource_id', id);
     else await supabase.from('resource_upvotes').insert({ user_id: user.id, resource_id: id });
   };
@@ -133,6 +194,12 @@ function ResourcesContent() {
   const handleSave = async (id) => {
     if (!isLoggedIn) return router.push("/login");
     const saved = savedIds.has(id);
+    
+    // Skip Supabase for dummy items, just update local state
+    if (id.toString().startsWith('dummy-')) {
+      return setSavedIds(p => { const n = new Set(p); saved ? n.delete(id) : n.add(id); return n; });
+    }
+
     const { error } = saved ? await supabase.from('saved_resources').delete().eq('user_id', user.id).eq('resource_id', id)
                             : await supabase.from('saved_resources').insert({ user_id: user.id, resource_id: id });
     if (!error) setSavedIds(p => { const n = new Set(p); saved ? n.delete(id) : n.add(id); return n; });
